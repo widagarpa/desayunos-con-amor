@@ -214,11 +214,18 @@ function addOrder(data) {
   sheet.getRange(newRow, 20).setNumberFormat("$#,##0"); // Costo Envio
   sheet.getRange(newRow, 21).setNumberFormat("$#,##0"); // TOTAL
 
+  // Create Google Calendar event for delivery
+  var calEventId = null;
+  if (data.fechaEntrega && data.horaEntrega) {
+    calEventId = createCalendarEvent(data, id);
+  }
+
   return {
     status: "ok",
-    message: "Pedido registrado",
+    message: "Pedido registrado" + (calEventId ? " y agregado al calendario" : ""),
     orderId: id,
-    fecha: fecha
+    fecha: fecha,
+    calendarEvent: calEventId
   };
 }
 
@@ -260,6 +267,91 @@ function updateStatus(data) {
 
   return { status: "error", message: "Pedido no encontrado: " + data.orderId };
 }
+
+// ===================== GOOGLE CALENDAR =====================
+
+function parseTimeRange(dateStr, timeStr) {
+  // dateStr: "2026-03-15", timeStr: "8:00-9:00 AM" or "12:00-1:00 PM"
+  var parts = dateStr.split("-");
+  var year = parseInt(parts[0]);
+  var month = parseInt(parts[1]) - 1; // 0-indexed
+  var day = parseInt(parts[2]);
+
+  // Parse time range like "8:00-9:00 AM" or "12:00-1:00 PM"
+  var match = timeStr.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!match) {
+    // Fallback: create all-day event times
+    return {
+      start: new Date(year, month, day, 8, 0),
+      end: new Date(year, month, day, 9, 0)
+    };
+  }
+
+  var startH = parseInt(match[1]);
+  var startM = parseInt(match[2]);
+  var endH = parseInt(match[3]);
+  var endM = parseInt(match[4]);
+  var ampm = match[5].toUpperCase();
+
+  // Convert to 24h format
+  if (ampm === "PM") {
+    if (startH < 12) startH += 12;
+    if (endH < 12) endH += 12;
+  } else {
+    if (startH === 12) startH = 0;
+    if (endH === 12) endH = 0;
+  }
+
+  return {
+    start: new Date(year, month, day, startH, startM),
+    end: new Date(year, month, day, endH, endM)
+  };
+}
+
+function createCalendarEvent(data, orderId) {
+  try {
+    var cal = CalendarApp.getDefaultCalendar();
+    var times = parseTimeRange(data.fechaEntrega || "", data.horaEntrega || "");
+
+    // TITULO: Producto + Nombre quien envia + Telefono quien envia
+    var title = (data.producto || "Pedido") + " | " + (data.envia || "Sin remitente") + " | " + (data.telefono || "");
+
+    // DESCRIPCION
+    var desc = "";
+    // Quien recibe + telefono
+    desc += "Recibe: " + (data.destinatario || "") + " - Tel: " + (data.telefono || "") + "\n\n";
+    // Producto + adicionales + ocasion + decoracion
+    desc += "Producto: " + (data.producto || "") + "\n";
+    if (data.adiciones) desc += "Adicionales: " + data.adiciones + "\n";
+    if (data.tematica) desc += "Ocasion: " + data.tematica + "\n";
+    if (data.color) desc += "Decoracion: " + data.color + "\n";
+    if (data.mensaje) desc += "Mensaje: " + data.mensaje + "\n";
+    desc += "\n";
+    // Direccion
+    desc += "Direccion: " + (data.direccion || "") + (data.zona ? ", " + data.zona : "") + "\n\n";
+    // Rango de hora
+    desc += "Hora: " + (data.horaEntrega || "") + "\n";
+    // Total
+    desc += "\nTotal: $" + (data.total || 0) + " | Pedido: " + orderId;
+
+    var location = (data.direccion || "") + (data.zona ? ", " + data.zona : "");
+
+    var event = cal.createEvent(title, times.start, times.end, {
+      description: desc,
+      location: location
+    });
+
+    // Set event color to grape/purple
+    event.setColor("3");
+
+    return event.getId();
+  } catch (err) {
+    Logger.log("Error creando evento calendar: " + err.toString());
+    return null;
+  }
+}
+
+// ===================== SETUP =====================
 
 // Run this once to initialize the sheet
 function setup() {
