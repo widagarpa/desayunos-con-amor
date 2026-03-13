@@ -76,7 +76,7 @@ function handleRequest(e) {
   }
 }
 
-const SPREADSHEET_ID = "17Ut5cAB0XkUNflr1xc9Kjda6P7RVZXz4kxzPBVcil9I";
+const SPREADSHEET_ID = "1_3-C9Jbzvi39NVsxDBtRowlHc149L05R9bQqnv-dtrU";
 
 function getOrCreateSheet() {
   var ss;

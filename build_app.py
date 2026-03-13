@@ -85,7 +85,7 @@ html_script = '<script>\nconst I=' + img_js + ';\n'
 html_script += r'''
 // ===== CRM GOOGLE SHEETS =====
 // PEGA AQUI la URL de tu Google Apps Script desplegado:
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwsxk98NTypU8A1b-x42YQ0OvLPWQCaryADoPKX5YS8ZI-8miZitBUxkB4NTwNRzPU/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbypd3JvIEnKElUyFHwvW_2kdxeL45df2Z6XqSZQXvl5lLQHfqWVPawkR_g_raDvHnp3Fg/exec";
 // ==============================
 
 const P=[
